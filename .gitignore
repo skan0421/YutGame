@@ -1,0 +1,51 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+bin/
+target/
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Gradle
+.gradle/
+build/
+
+# Maven
+.mvn/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# 환경 변수
+.env
+.env.local
+application-local.yml
+
+# 데이터베이스
+*.db
+*.sqlite
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 빌드 산출물
+dist/
+*.zip
+*.tar.gz
+
+# 개인 메모
+notes.txt
+TODO.txt
