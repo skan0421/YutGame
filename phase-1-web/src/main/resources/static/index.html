@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>윷놀이 - 온라인</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>윷놀이 온라인</h1>
+
+        <!-- 이름 입력 -->
+        <div id="name-section" class="card">
+            <h2>플레이어 이름</h2>
+            <input type="text" id="player-name" placeholder="이름을 입력하세요" maxlength="10">
+            <button id="name-confirm-btn" onclick="confirmName()">확인</button>
+        </div>
+
+        <!-- 로비 (이름 입력 후 표시) -->
+        <div id="lobby-section" class="card" style="display:none;">
+            <h2>안녕하세요, <span id="display-name"></span>님!</h2>
+
+            <div class="lobby-actions">
+                <button id="create-room-btn" onclick="createRoom()">방 만들기</button>
+                <button id="refresh-btn" onclick="loadRooms()">새로고침</button>
+            </div>
+
+            <h3>대기 중인 방</h3>
+            <div id="room-list">
+                <p class="empty-msg">대기 중인 방이 없습니다.</p>
+            </div>
+        </div>
+
+        <!-- 대기 화면 (방 생성 후 표시) -->
+        <div id="waiting-section" class="card" style="display:none;">
+            <h2>방 생성 완료!</h2>
+            <p>방 ID: <strong id="waiting-room-id"></strong></p>
+            <p>상대방이 참가하기를 기다리는 중...</p>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
