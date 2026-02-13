@@ -9,41 +9,53 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body class="game-body">
     <div class="game-container">
-        <!-- 상단: 게임 정보 -->
-        <div id="game-info" class="game-info">
-            <div class="player-info" id="player1-info">
-                <span class="player-color-dot p1-dot"></span>
+        <!-- 타이틀 -->
+        <h1 class="game-title">윷 놀 이</h1>
+
+        <!-- 상단: 플레이어 탭 -->
+        <div class="player-tabs">
+            <div class="player-tab" id="player1-info">
+                <span class="player-emoji">🔴</span>
                 <span class="player-name" id="p1-name">Player 1</span>
                 <span class="player-score" id="p1-score">도착: 0/4</span>
             </div>
-            <div class="turn-info">
+            <div class="turn-badge">
                 <span id="turn-display">TURN 0</span>
                 <span id="current-turn-name">대기중</span>
             </div>
-            <div class="player-info" id="player2-info">
-                <span class="player-color-dot p2-dot"></span>
+            <div class="player-tab" id="player2-info">
+                <span class="player-emoji">🟢</span>
                 <span class="player-name" id="p2-name">Player 2</span>
                 <span class="player-score" id="p2-score">도착: 0/4</span>
             </div>
         </div>
 
-        <!-- 중앙: 윷판 -->
-        <div class="board-area">
-            <canvas id="yut-board" width="500" height="500"></canvas>
+        <!-- 턴 전환 배너 -->
+        <div id="turn-banner" class="turn-banner" style="display:none;">
+            <span id="turn-banner-text"></span>
         </div>
 
-        <!-- 하단: 컨트롤 -->
+        <!-- 3D 뷰포트 -->
+        <div id="board-mount" class="board-viewport"></div>
+
+        <!-- 메시지 -->
+        <div class="message-bubble">
+            <p id="game-message">게임을 시작합니다!</p>
+        </div>
+
+        <!-- 윷 결과 + 히스토리 -->
+        <div class="result-area">
+            <div id="yut-result-badge" class="yut-result-badge" style="display:none;"></div>
+            <div id="throw-history" class="throw-history"></div>
+        </div>
+
+        <!-- 컨트롤 버튼 -->
         <div class="controls">
-            <div id="message-area" class="message-area">
-                <p id="game-message">게임을 시작합니다!</p>
-            </div>
-
             <div id="throw-area" class="action-area">
-                <button id="throw-btn" onclick="doThrowYut()">윷 던지기</button>
+                <button id="throw-btn" onclick="doThrowYut()">🎯 윷 던지기</button>
             </div>
-
             <div id="piece-area" class="action-area" style="display:none;">
                 <p>이동할 말을 선택하세요:</p>
                 <div id="piece-buttons"></div>
@@ -73,6 +85,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="/js/board.js"></script>
     <script src="/js/game.js"></script>
 </body>

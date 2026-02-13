@@ -19,7 +19,7 @@ if (!roomId || !myName) {
 
 // 초기화
 window.onload = function () {
-    BoardRenderer.init('yut-board');
+    BoardRenderer.init('board-mount');
     BoardRenderer.draw(null);
     connect();
 };
