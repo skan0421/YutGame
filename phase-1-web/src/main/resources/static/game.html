@@ -11,6 +11,7 @@
         <!-- 상단: 게임 정보 -->
         <div id="game-info" class="game-info">
             <div class="player-info" id="player1-info">
+                <span class="player-color-dot p1-dot"></span>
                 <span class="player-name" id="p1-name">Player 1</span>
                 <span class="player-score" id="p1-score">도착: 0/4</span>
             </div>
@@ -19,6 +20,7 @@
                 <span id="current-turn-name">대기중</span>
             </div>
             <div class="player-info" id="player2-info">
+                <span class="player-color-dot p2-dot"></span>
                 <span class="player-name" id="p2-name">Player 2</span>
                 <span class="player-score" id="p2-score">도착: 0/4</span>
             </div>
@@ -43,10 +45,17 @@
                 <p>이동할 말을 선택하세요:</p>
                 <div id="piece-buttons"></div>
             </div>
+        </div>
 
-            <div id="yut-result-display" class="yut-result" style="display:none;">
-                <span id="yut-result-text"></span>
+        <!-- 윷 던지기 애니메이션 오버레이 -->
+        <div id="yut-throw-overlay" class="yut-throw-overlay" style="display:none;">
+            <div class="yut-sticks-container">
+                <div class="yut-stick"></div>
+                <div class="yut-stick"></div>
+                <div class="yut-stick"></div>
+                <div class="yut-stick"></div>
             </div>
+            <div class="throw-result-text" id="throw-result-text"></div>
         </div>
 
         <!-- 게임 오버 모달 -->
