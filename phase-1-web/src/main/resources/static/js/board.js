@@ -2,7 +2,7 @@
 const BoardRenderer = {
     canvas: null,
     ctx: null,
-    positions: [],  // index → {x, y}
+    positions: [],
 
     // --- 경로 맵 (백엔드와 동일) ---
     OUTER_NEXT: {},
@@ -12,11 +12,9 @@ const BoardRenderer = {
     SHORTCUT_POS: new Set([20, 21, 22, 23, 24, 25, 26, 27, 28]),
     FINISH: 29,
 
-    // --- 애니메이션 상태 ---
-    animQueue: [],      // 이동 애니메이션 큐
-    effects: [],        // 시각 효과 (잡기, 업기)
+    // --- 애니메이션 ---
+    effects: [],
     animating: false,
-    onAnimDone: null,
     lastGameState: null,
 
     // ===== 초기화 =====
@@ -32,23 +30,23 @@ const BoardRenderer = {
         for (let i = 0; i <= 18; i++) o[i] = i + 1;
         o[19] = 29;
         this.OUTER_NEXT = o;
-
         this.SHORTCUT_NEXT = {
             5: 20, 20: 21, 21: 22,
             10: 23, 23: 24, 24: 22,
             15: 25, 25: 26, 26: 22,
             22: 27, 27: 28, 28: 29
         };
-
         const bw = {};
         for (let i = 1; i <= 19; i++) bw[i] = i - 1;
-        bw[20] = 5;  bw[21] = 20; bw[22] = 21;
+        bw[20] = 5; bw[21] = 20; bw[22] = 21;
         bw[23] = 10; bw[24] = 23;
         bw[25] = 15; bw[26] = 25;
         bw[27] = 22; bw[28] = 27;
         this.BACKWARD = bw;
     },
 
+    // ===== 좌표 계산 =====
+    // 출발: 우상단(0) → 우측 아래로 → 우하(5) → 하단 좌로 → 좌하(10) → 좌측 위로 → 좌상(15) → 상단 우로 → 도착
     calculatePositions() {
         const w = this.canvas.width;
         const h = this.canvas.height;
@@ -56,51 +54,51 @@ const BoardRenderer = {
         const pos = [];
 
         // 모서리 4개 + 중앙
-        pos[0]  = { x: w - m, y: h - m };  // 우하 (시작)
-        pos[5]  = { x: m,     y: h - m };  // 좌하
-        pos[10] = { x: m,     y: m };      // 좌상
-        pos[15] = { x: w - m, y: m };      // 우상
-        pos[22] = { x: w / 2, y: h / 2 };  // 중앙
+        pos[0]  = { x: w - m, y: m };       // 우상 (출발)
+        pos[5]  = { x: w - m, y: h - m };   // 우하
+        pos[10] = { x: m,     y: h - m };   // 좌하
+        pos[15] = { x: m,     y: m };       // 좌상
+        pos[22] = { x: w / 2, y: h / 2 };   // 중앙
 
-        // 하단 변 (0→5, 우→좌)
+        // 우측 변 (0→5, 상→하) — 도/개/걸/윷 라인
         for (let i = 1; i <= 4; i++) {
-            pos[i] = { x: pos[0].x - i * (pos[0].x - pos[5].x) / 5, y: h - m };
+            pos[i] = { x: w - m, y: pos[0].y + i * (pos[5].y - pos[0].y) / 5 };
         }
-        // 좌측 변 (5→10, 하→상)
+        // 하단 변 (5→10, 우→좌)
         for (let i = 1; i <= 4; i++) {
-            pos[5 + i] = { x: m, y: pos[5].y - i * (pos[5].y - pos[10].y) / 5 };
+            pos[5 + i] = { x: pos[5].x - i * (pos[5].x - pos[10].x) / 5, y: h - m };
         }
-        // 상단 변 (10→15, 좌→우)
+        // 좌측 변 (10→15, 하→상)
         for (let i = 1; i <= 4; i++) {
-            pos[10 + i] = { x: pos[10].x + i * (pos[15].x - pos[10].x) / 5, y: m };
+            pos[10 + i] = { x: m, y: pos[10].y - i * (pos[10].y - pos[15].y) / 5 };
         }
-        // 우측 변 (15→0, 상→하)
+        // 상단 변 (15→0, 좌→우)
         for (let i = 1; i <= 4; i++) {
-            pos[15 + i] = { x: w - m, y: pos[15].y + i * (pos[0].y - pos[15].y) / 5 };
+            pos[15 + i] = { x: pos[15].x + i * (pos[0].x - pos[15].x) / 5, y: m };
         }
 
-        // 대각선: 5(좌하) → 중앙 (위치 20, 21)
+        // 대각선: 5(우하) → 중앙 (위치 20, 21)
         for (let i = 1; i <= 2; i++) {
             pos[19 + i] = {
                 x: pos[5].x + i * (pos[22].x - pos[5].x) / 3,
                 y: pos[5].y + i * (pos[22].y - pos[5].y) / 3
             };
         }
-        // 대각선: 10(좌상) → 중앙 (위치 23, 24)
+        // 대각선: 10(좌하) → 중앙 (위치 23, 24)
         for (let i = 1; i <= 2; i++) {
             pos[22 + i] = {
                 x: pos[10].x + i * (pos[22].x - pos[10].x) / 3,
                 y: pos[10].y + i * (pos[22].y - pos[10].y) / 3
             };
         }
-        // 대각선: 15(우상) → 중앙 (위치 25, 26)
+        // 대각선: 15(좌상) → 중앙 (위치 25, 26)
         for (let i = 1; i <= 2; i++) {
             pos[24 + i] = {
                 x: pos[15].x + i * (pos[22].x - pos[15].x) / 3,
                 y: pos[15].y + i * (pos[22].y - pos[15].y) / 3
             };
         }
-        // 대각선: 중앙 → 0(우하) (위치 27, 28)
+        // 대각선: 중앙 → 0(우상) (위치 27, 28)
         for (let i = 1; i <= 2; i++) {
             pos[26 + i] = {
                 x: pos[22].x + i * (pos[0].x - pos[22].x) / 3,
@@ -114,7 +112,7 @@ const BoardRenderer = {
     // ===== 메인 그리기 =====
     draw(gameState) {
         this.lastGameState = gameState;
-        if (this.animating) return; // 애니메이션 중에는 직접 draw 무시
+        if (this.animating) return;
         this._render(gameState);
     },
 
@@ -122,11 +120,13 @@ const BoardRenderer = {
         const ctx = this.ctx;
         const w = this.canvas.width;
         const h = this.canvas.height;
-
         ctx.clearRect(0, 0, w, h);
 
-        // 배경
-        ctx.fillStyle = '#1a1a2e';
+        // 배경 그라디언트
+        const bg = ctx.createRadialGradient(w / 2, h / 2, 50, w / 2, h / 2, w * 0.7);
+        bg.addColorStop(0, '#1e2a45');
+        bg.addColorStop(1, '#141a2e');
+        ctx.fillStyle = bg;
         ctx.fillRect(0, 0, w, h);
 
         this.drawBoard();
@@ -137,39 +137,46 @@ const BoardRenderer = {
         }
     },
 
-    // ===== 윷판 그리기 =====
+    // ===== 윷판 그리기 (고급) =====
     drawBoard() {
         const ctx = this.ctx;
         const pos = this.positions;
 
-        // --- 외곽 선 ---
-        ctx.strokeStyle = '#8B7355';
+        // --- 외곽 glow ---
+        ctx.save();
+        ctx.shadowColor = 'rgba(180, 140, 80, 0.15)';
+        ctx.shadowBlur = 12;
+
+        ctx.strokeStyle = '#9B8365';
         ctx.lineWidth = 3;
 
-        // 하단
-        for (let i = 0; i < 5; i++) this.drawLine(pos[i], pos[i + 1]);
-        // 좌측
-        for (let i = 5; i < 10; i++) this.drawLine(pos[i], pos[i + 1]);
-        // 상단
-        for (let i = 10; i < 15; i++) this.drawLine(pos[i], pos[i + 1]);
         // 우측
+        for (let i = 0; i < 5; i++) this.drawLine(pos[i], pos[i + 1]);
+        // 하단
+        for (let i = 5; i < 10; i++) this.drawLine(pos[i], pos[i + 1]);
+        // 좌측
+        for (let i = 10; i < 15; i++) this.drawLine(pos[i], pos[i + 1]);
+        // 상단
         for (let i = 15; i < 19; i++) this.drawLine(pos[i], pos[i + 1]);
-        this.drawLine(pos[19], pos[0]); // 19 → 시작점
+        this.drawLine(pos[19], pos[0]);
 
-        // --- 대각선 ---
+        ctx.restore();
+
+        // --- 대각선 (살짝 투명) ---
+        ctx.save();
+        ctx.shadowColor = 'rgba(140, 110, 60, 0.1)';
+        ctx.shadowBlur = 8;
         ctx.strokeStyle = '#7A6345';
         ctx.lineWidth = 2;
 
-        // 좌하(5) → 중앙 → 우상(15)
+        // 우하(5) → 중앙 → 좌상(15)
         const diag1 = [5, 20, 21, 22, 26, 25, 15];
-        for (let i = 0; i < diag1.length - 1; i++) {
-            this.drawLine(pos[diag1[i]], pos[diag1[i + 1]]);
-        }
-        // 좌상(10) → 중앙 → 우하(0)
+        for (let i = 0; i < diag1.length - 1; i++) this.drawLine(pos[diag1[i]], pos[diag1[i + 1]]);
+
+        // 좌하(10) → 중앙 → 우상(0)
         const diag2 = [10, 23, 24, 22, 27, 28, 0];
-        for (let i = 0; i < diag2.length - 1; i++) {
-            this.drawLine(pos[diag2[i]], pos[diag2[i + 1]]);
-        }
+        for (let i = 0; i < diag2.length - 1; i++) this.drawLine(pos[diag2[i]], pos[diag2[i + 1]]);
+        ctx.restore();
 
         // --- 위치 마커 ---
         for (let i = 0; i <= 28; i++) {
@@ -177,49 +184,87 @@ const BoardRenderer = {
             const p = pos[i];
             const isCorner = [0, 5, 10, 15].includes(i);
             const isCenter = i === 22;
-            const radius = isCorner ? 16 : isCenter ? 14 : 8;
-
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
 
             if (isCorner || isCenter) {
-                ctx.fillStyle = '#2a2a4a';
-                ctx.strokeStyle = '#8B7355';
-                ctx.lineWidth = 2.5;
+                this._drawBigMarker(p.x, p.y, isCenter);
             } else {
-                ctx.fillStyle = '#222244';
-                ctx.strokeStyle = '#5a5a6a';
-                ctx.lineWidth = 1.5;
+                this._drawSmallMarker(p.x, p.y);
             }
-            ctx.fill();
-            ctx.stroke();
         }
 
         // --- 라벨 ---
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // 시작/도착 표시
-        ctx.fillStyle = '#e9a560';
-        ctx.font = 'bold 13px sans-serif';
+        // 출발
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 11px sans-serif';
         ctx.fillText('출발', pos[0].x, pos[0].y);
 
-        // 모서리 이름 (작게)
-        ctx.fillStyle = '#667';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('꼭', pos[5].x, pos[5].y);
-        ctx.fillText('꼭', pos[10].x, pos[10].y);
-        ctx.fillText('꼭', pos[15].x, pos[15].y);
+        // 우측 라벨: 도/개/걸/윷
+        const rightLabels = ['도', '개', '걸', '윷'];
+        ctx.font = 'bold 11px sans-serif';
+        for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = '#C8A96E';
+            ctx.fillText(rightLabels[i], pos[i + 1].x + 22, pos[i + 1].y);
+        }
 
-        // 중앙
-        ctx.fillStyle = '#a88';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('중앙', pos[22].x, pos[22].y);
+        // 모서리 작은 라벨
+        ctx.fillStyle = '#556';
+        ctx.font = '9px sans-serif';
+        ctx.fillText('모', pos[5].x, pos[5].y + 24);
+        ctx.fillText('모', pos[10].x, pos[10].y + 24);
+        ctx.fillText('모', pos[15].x, pos[15].y - 22);
+    },
+
+    _drawBigMarker(x, y, isCenter) {
+        const ctx = this.ctx;
+        const r = isCenter ? 15 : 17;
+
+        // 외곽 글로우
+        ctx.save();
+        ctx.shadowColor = 'rgba(180, 140, 80, 0.3)';
+        ctx.shadowBlur = 10;
+
+        // 바깥 링
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, r);
+        grad.addColorStop(0, '#3a3a5a');
+        grad.addColorStop(1, '#252545');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#9B8365';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // 안쪽 원
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(155, 131, 101, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+    },
+
+    _drawSmallMarker(x, y) {
+        const ctx = this.ctx;
+        const r = 7;
+
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(x - 1, y - 1, 1, x, y, r);
+        grad.addColorStop(0, '#2e2e50');
+        grad.addColorStop(1, '#1e1e3a');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#555570';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
     },
 
     // ===== 말 그리기 =====
     drawAllPieces(gameState) {
-        // 시작 위치(0)에서 대기 중인 말은 별도 영역에 배치
         this.drawPlayerPieces(gameState.player1, '#e94560', 1);
         this.drawPlayerPieces(gameState.player2, '#4ecdc4', 2);
     },
@@ -238,64 +283,77 @@ const BoardRenderer = {
             }
         });
 
-        // 대기 중인 말 (시작 근처에 배치)
         waitingPieces.forEach((item) => {
             const wp = this._waitingPos(playerNum, item.idx);
-            const ox = wp.x;
-            const oy = wp.y;
-            this.drawPieceAt(ox, oy, color, item.idx + 1, item.piece.stackCount);
+            this.drawPieceAt(wp.x, wp.y, color, item.idx + 1, item.piece.stackCount);
         });
 
-        // 판 위의 말
         boardPieces.forEach((item) => {
             const p = pos[item.piece.position];
             if (!p) return;
-            // 같은 위치에 여러 말이 있을 수 있으므로 약간 오프셋
-            const offsetX = (playerNum === 1 ? -6 : 6);
-            const offsetY = (playerNum === 1 ? -6 : 6);
-            this.drawPieceAt(p.x + offsetX, p.y + offsetY, color, item.idx + 1, item.piece.stackCount);
+            const offX = playerNum === 1 ? -6 : 6;
+            const offY = playerNum === 1 ? -6 : 6;
+            this.drawPieceAt(p.x + offX, p.y + offY, color, item.idx + 1, item.piece.stackCount);
         });
     },
 
     drawPieceAt(x, y, color, number, stackCount) {
         const ctx = this.ctx;
-        const r = 13;
+        const r = 14;
 
-        // 그림자
-        ctx.beginPath();
-        ctx.arc(x + 2, y + 2, r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fill();
+        // 글로우
+        ctx.save();
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
 
-        // 말 본체
+        // 본체
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        const grad = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, r);
+        grad.addColorStop(0, this._lighten(color, 40));
+        grad.addColorStop(1, color);
+        ctx.fillStyle = grad;
         ctx.fill();
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
         ctx.lineWidth = 2;
         ctx.stroke();
+        ctx.restore();
 
         // 숫자
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(number, x, y);
 
-        // 업힌 말 표시
+        // 업힌 말 배지
         if (stackCount > 1) {
+            ctx.save();
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 6;
             ctx.beginPath();
-            ctx.arc(x + 12, y - 12, 9, 0, Math.PI * 2);
-            ctx.fillStyle = '#ff0';
+            ctx.arc(x + 11, y - 11, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFD700';
             ctx.fill();
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#332800';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
-            ctx.fillStyle = '#333';
+            ctx.restore();
+
+            ctx.fillStyle = '#332800';
             ctx.font = 'bold 9px sans-serif';
-            ctx.fillText('x' + stackCount, x + 12, y - 12);
+            ctx.fillText(stackCount, x + 11, y - 11);
         }
+    },
+
+    _lighten(hex, amt) {
+        let r = parseInt(hex.slice(1, 3), 16);
+        let g = parseInt(hex.slice(3, 5), 16);
+        let b = parseInt(hex.slice(5, 7), 16);
+        r = Math.min(255, r + amt);
+        g = Math.min(255, g + amt);
+        b = Math.min(255, b + amt);
+        return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
     },
 
     // ===== 이동 애니메이션 =====
@@ -306,8 +364,6 @@ const BoardRenderer = {
         }
 
         const anims = [];
-
-        // 변경된 말 찾기 (position이 달라진 말)
         [
             { old: oldState.player1, now: newState.player1, color: '#e94560', pn: 1 },
             { old: oldState.player2, now: newState.player2, color: '#4ecdc4', pn: 2 }
@@ -330,10 +386,8 @@ const BoardRenderer = {
                             fromY: isFromWaiting ? from.y : from.y + offY,
                             toX: isToWaiting ? to.x : to.x + offX,
                             toY: isToWaiting ? to.y : to.y + offY,
-                            color: color,
-                            number: i + 1,
-                            stackCount: np.stackCount,
-                            isCaptured: false
+                            color, number: i + 1,
+                            stackCount: np.stackCount
                         });
                     }
                 }
@@ -347,73 +401,49 @@ const BoardRenderer = {
             return;
         }
 
-        // 잡기 효과
         if (captured) {
-            // 잡힌 말의 이전 위치에서 효과
-            anims.forEach(a => {
-                if (a.color === '#e94560' || a.color === '#4ecdc4') {
-                    // 잡힌 쪽의 말이 시작점으로 돌아가는 애니메이션에 효과 추가
-                }
-            });
-            this.effects.push({
-                type: 'capture',
-                x: anims[0].toX,
-                y: anims[0].toY,
-                startTime: Date.now(),
-                duration: 600
-            });
+            this.effects.push({ type: 'capture', x: anims[0].toX, y: anims[0].toY, startTime: Date.now(), duration: 700 });
         }
-
-        // 업기 효과
         if (stacked) {
-            this.effects.push({
-                type: 'stack',
-                x: anims[0].toX,
-                y: anims[0].toY,
-                startTime: Date.now(),
-                duration: 400
-            });
+            this.effects.push({ type: 'stack', x: anims[0].toX, y: anims[0].toY, startTime: Date.now(), duration: 500 });
         }
 
-        // 애니메이션 실행
         this.animating = true;
-        const duration = 400; // ms
+        const duration = 450;
         const startTime = Date.now();
+        const self = this;
 
-        const animate = () => {
+        (function animate() {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(1, elapsed / duration);
-            const eased = this.easeOutQuad(progress);
+            const eased = self.easeOutCubic(progress);
 
-            // 이전 상태로 보드 그리기 (이동 중인 말 제외)
-            this._render(oldState);
-
-            // 이동 중인 말 그리기
+            self._render(oldState);
             for (const a of anims) {
-                const cx = a.fromX + (a.toX - a.fromX) * eased;
-                const cy = a.fromY + (a.toY - a.fromY) * eased;
-                this.drawPieceAt(cx, cy, a.color, a.number, a.stackCount);
+                self.drawPieceAt(
+                    a.fromX + (a.toX - a.fromX) * eased,
+                    a.fromY + (a.toY - a.fromY) * eased,
+                    a.color, a.number, a.stackCount
+                );
             }
 
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                this.animating = false;
-                this.lastGameState = newState;
-                this._render(newState);
+                self.animating = false;
+                self.lastGameState = newState;
+                self._render(newState);
                 if (callback) callback();
             }
-        };
-
-        requestAnimationFrame(animate);
+        })();
     },
 
     _waitingPos(playerNum, pieceIdx) {
         const base = this.positions[0];
         if (playerNum === 1) {
-            return { x: base.x - 30 - pieceIdx * 22, y: base.y - 30 };
+            return { x: base.x - 30 - pieceIdx * 24, y: base.y - 32 };
         } else {
-            return { x: base.x - 30 - pieceIdx * 22, y: base.y + 30 };
+            return { x: base.x - 30 - pieceIdx * 24, y: base.y + 32 };
         }
     },
 
@@ -421,36 +451,28 @@ const BoardRenderer = {
     drawEffects() {
         const ctx = this.ctx;
         const now = Date.now();
-
         this.effects = this.effects.filter(e => {
             const elapsed = now - e.startTime;
             if (elapsed > e.duration) return false;
-            const progress = elapsed / e.duration;
+            const t = elapsed / e.duration;
 
             if (e.type === 'capture') {
-                // 빨간 파동
-                const radius = 20 + progress * 40;
-                const alpha = 1 - progress;
-                ctx.beginPath();
-                ctx.arc(e.x, e.y, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(233, 69, 96, ${alpha})`;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-
-                // 두 번째 파동
-                const radius2 = 10 + progress * 30;
-                ctx.beginPath();
-                ctx.arc(e.x, e.y, radius2, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255, 100, 100, ${alpha * 0.7})`;
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                // 이중 파동
+                for (let k = 0; k < 2; k++) {
+                    const r = 15 + (t + k * 0.15) * 50;
+                    const a = Math.max(0, 1 - (t + k * 0.15));
+                    ctx.beginPath();
+                    ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(233, 69, 96, ' + a + ')';
+                    ctx.lineWidth = 3 - k;
+                    ctx.stroke();
+                }
             } else if (e.type === 'stack') {
-                // 황금 빛
-                const radius = 15 + progress * 20;
-                const alpha = 1 - progress;
+                const r = 12 + t * 25;
+                const a = 1 - t;
                 ctx.beginPath();
-                ctx.arc(e.x, e.y, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+                ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 215, 0, ' + a + ')';
                 ctx.lineWidth = 3;
                 ctx.stroke();
             }
@@ -458,7 +480,7 @@ const BoardRenderer = {
         });
     },
 
-    // ===== 유틸리티 =====
+    // ===== 유틸 =====
     drawLine(from, to) {
         if (!from || !to) return;
         this.ctx.beginPath();
@@ -466,8 +488,5 @@ const BoardRenderer = {
         this.ctx.lineTo(to.x, to.y);
         this.ctx.stroke();
     },
-
-    easeOutQuad(t) {
-        return t * (2 - t);
-    }
+    easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 };

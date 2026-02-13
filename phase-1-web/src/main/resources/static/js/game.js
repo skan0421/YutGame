@@ -196,7 +196,7 @@ function updateUI() {
     document.getElementById('p2-name').textContent = p2.name;
     document.getElementById('p2-score').textContent = '도착: ' + p2.finishedCount + '/4';
 
-    document.getElementById('turn-display').textContent = '턴 ' + gameState.turnCount;
+    document.getElementById('turn-display').textContent = 'TURN ' + gameState.turnCount;
     document.getElementById('current-turn-name').textContent = gameState.currentPlayerName + '님 차례';
 
     const p1Info = document.getElementById('player1-info');
@@ -204,10 +204,11 @@ function updateUI() {
     p1Info.classList.toggle('active', gameState.currentPlayerName === p1.name);
     p2Info.classList.toggle('active', gameState.currentPlayerName === p2.name);
 
-    // 버튼 활성화
+    // 버튼 활성화 + 펄스 애니메이션
     const throwBtn = document.getElementById('throw-btn');
     const isMyTurn = gameState.currentPlayerName === myName;
     throwBtn.disabled = !isMyTurn || lastYutSteps !== 0 || throwInProgress;
+    throwBtn.classList.toggle('my-turn-pulse', isMyTurn && lastYutSteps === 0 && !throwInProgress);
 
     // 윷판 그리기
     BoardRenderer.draw(gameState);
