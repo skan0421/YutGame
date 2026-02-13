@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>윷놀이 - 게임</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 상단: 게임 정보 -->
+        <div id="game-info" class="game-info">
+            <div class="player-info" id="player1-info">
+                <span class="player-name" id="p1-name">Player 1</span>
+                <span class="player-score" id="p1-score">도착: 0/4</span>
+            </div>
+            <div class="turn-info">
+                <span id="turn-display">턴 0</span>
+                <span id="current-turn-name">대기중</span>
+            </div>
+            <div class="player-info" id="player2-info">
+                <span class="player-name" id="p2-name">Player 2</span>
+                <span class="player-score" id="p2-score">도착: 0/4</span>
+            </div>
+        </div>
+
+        <!-- 중앙: 윷판 -->
+        <div class="board-area">
+            <canvas id="yut-board" width="500" height="500"></canvas>
+        </div>
+
+        <!-- 하단: 컨트롤 -->
+        <div class="controls">
+            <div id="message-area" class="message-area">
+                <p id="game-message">게임을 시작합니다!</p>
+            </div>
+
+            <div id="throw-area" class="action-area">
+                <button id="throw-btn" onclick="doThrowYut()">윷 던지기</button>
+            </div>
+
+            <div id="piece-area" class="action-area" style="display:none;">
+                <p>이동할 말을 선택하세요:</p>
+                <div id="piece-buttons"></div>
+            </div>
+
+            <div id="yut-result-display" class="yut-result" style="display:none;">
+                <span id="yut-result-text"></span>
+            </div>
+        </div>
+
+        <!-- 게임 오버 모달 -->
+        <div id="game-over-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h2 id="winner-text">승리!</h2>
+                <p id="winner-message"></p>
+                <button onclick="location.href='/'">로비로 돌아가기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script src="/js/board.js"></script>
+    <script src="/js/game.js"></script>
+</body>
+</html>
