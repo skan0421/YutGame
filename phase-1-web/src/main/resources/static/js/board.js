@@ -46,7 +46,7 @@ const BoardRenderer = {
     },
 
     // ===== 좌표 계산 =====
-    // 출발: 우상단(0) → 우측 아래로 → 우하(5) → 하단 좌로 → 좌하(10) → 좌측 위로 → 좌상(15) → 상단 우로 → 도착
+    // 출발: 우하단(0) → 우측 위로 → 우상(5) → 상단 좌로 → 좌상(10) → 좌측 아래로 → 좌하(15) → 하단 우로 → 도착
     calculatePositions() {
         const w = this.canvas.width;
         const h = this.canvas.height;
@@ -54,51 +54,51 @@ const BoardRenderer = {
         const pos = [];
 
         // 모서리 4개 + 중앙
-        pos[0]  = { x: w - m, y: m };       // 우상 (출발)
-        pos[5]  = { x: w - m, y: h - m };   // 우하
-        pos[10] = { x: m,     y: h - m };   // 좌하
-        pos[15] = { x: m,     y: m };       // 좌상
+        pos[0]  = { x: w - m, y: h - m };   // 우하 (출발/도착)
+        pos[5]  = { x: w - m, y: m };       // 우상
+        pos[10] = { x: m,     y: m };       // 좌상
+        pos[15] = { x: m,     y: h - m };   // 좌하
         pos[22] = { x: w / 2, y: h / 2 };   // 중앙
 
-        // 우측 변 (0→5, 상→하) — 도/개/걸/윷 라인
+        // 우측 변 (0→5, 하→상) — 도/개/걸/윷 라인
         for (let i = 1; i <= 4; i++) {
             pos[i] = { x: w - m, y: pos[0].y + i * (pos[5].y - pos[0].y) / 5 };
         }
-        // 하단 변 (5→10, 우→좌)
+        // 상단 변 (5→10, 우→좌)
         for (let i = 1; i <= 4; i++) {
-            pos[5 + i] = { x: pos[5].x - i * (pos[5].x - pos[10].x) / 5, y: h - m };
+            pos[5 + i] = { x: pos[5].x - i * (pos[5].x - pos[10].x) / 5, y: m };
         }
-        // 좌측 변 (10→15, 하→상)
+        // 좌측 변 (10→15, 상→하)
         for (let i = 1; i <= 4; i++) {
-            pos[10 + i] = { x: m, y: pos[10].y - i * (pos[10].y - pos[15].y) / 5 };
+            pos[10 + i] = { x: m, y: pos[10].y + i * (pos[15].y - pos[10].y) / 5 };
         }
-        // 상단 변 (15→0, 좌→우)
+        // 하단 변 (15→0, 좌→우)
         for (let i = 1; i <= 4; i++) {
-            pos[15 + i] = { x: pos[15].x + i * (pos[0].x - pos[15].x) / 5, y: m };
+            pos[15 + i] = { x: pos[15].x + i * (pos[0].x - pos[15].x) / 5, y: h - m };
         }
 
-        // 대각선: 5(우하) → 중앙 (위치 20, 21)
+        // 대각선: 5(우상) → 중앙 (위치 20, 21)
         for (let i = 1; i <= 2; i++) {
             pos[19 + i] = {
                 x: pos[5].x + i * (pos[22].x - pos[5].x) / 3,
                 y: pos[5].y + i * (pos[22].y - pos[5].y) / 3
             };
         }
-        // 대각선: 10(좌하) → 중앙 (위치 23, 24)
+        // 대각선: 10(좌상) → 중앙 (위치 23, 24)
         for (let i = 1; i <= 2; i++) {
             pos[22 + i] = {
                 x: pos[10].x + i * (pos[22].x - pos[10].x) / 3,
                 y: pos[10].y + i * (pos[22].y - pos[10].y) / 3
             };
         }
-        // 대각선: 15(좌상) → 중앙 (위치 25, 26)
+        // 대각선: 15(좌하) → 중앙 (위치 25, 26)
         for (let i = 1; i <= 2; i++) {
             pos[24 + i] = {
                 x: pos[15].x + i * (pos[22].x - pos[15].x) / 3,
                 y: pos[15].y + i * (pos[22].y - pos[15].y) / 3
             };
         }
-        // 대각선: 중앙 → 0(우상) (위치 27, 28)
+        // 대각선: 중앙 → 0(우하) (위치 27, 28)
         for (let i = 1; i <= 2; i++) {
             pos[26 + i] = {
                 x: pos[22].x + i * (pos[0].x - pos[22].x) / 3,
@@ -169,11 +169,11 @@ const BoardRenderer = {
         ctx.strokeStyle = '#7A6345';
         ctx.lineWidth = 2;
 
-        // 우하(5) → 중앙 → 좌상(15)
+        // 우상(5) → 중앙 → 좌하(15)
         const diag1 = [5, 20, 21, 22, 26, 25, 15];
         for (let i = 0; i < diag1.length - 1; i++) this.drawLine(pos[diag1[i]], pos[diag1[i + 1]]);
 
-        // 좌하(10) → 중앙 → 우상(0)
+        // 좌상(10) → 중앙 → 우하(0)
         const diag2 = [10, 23, 24, 22, 27, 28, 0];
         for (let i = 0; i < diag2.length - 1; i++) this.drawLine(pos[diag2[i]], pos[diag2[i + 1]]);
         ctx.restore();
@@ -212,9 +212,9 @@ const BoardRenderer = {
         // 모서리 작은 라벨
         ctx.fillStyle = '#556';
         ctx.font = '9px sans-serif';
-        ctx.fillText('모', pos[5].x, pos[5].y + 24);
-        ctx.fillText('모', pos[10].x, pos[10].y + 24);
-        ctx.fillText('모', pos[15].x, pos[15].y - 22);
+        ctx.fillText('모', pos[5].x, pos[5].y - 22);   // 우상
+        ctx.fillText('모', pos[10].x, pos[10].y - 22);  // 좌상
+        ctx.fillText('모', pos[15].x, pos[15].y + 24);  // 좌하
     },
 
     _drawBigMarker(x, y, isCenter) {
@@ -439,11 +439,11 @@ const BoardRenderer = {
     },
 
     _waitingPos(playerNum, pieceIdx) {
-        const base = this.positions[0];
+        const base = this.positions[0]; // 우하단
         if (playerNum === 1) {
-            return { x: base.x - 30 - pieceIdx * 24, y: base.y - 32 };
+            return { x: base.x - 36 - pieceIdx * 26, y: base.y - 4 };
         } else {
-            return { x: base.x - 30 - pieceIdx * 24, y: base.y + 32 };
+            return { x: base.x - 36 - pieceIdx * 26, y: base.y + 26 };
         }
     },
 
