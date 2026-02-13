@@ -54,14 +54,16 @@ function handleServerMessage(data) {
 
         case 'THROW_RESULT':
             gameState = data;
-            lastYutSteps = data.yutSteps;
             showYutResult(data.yutResultName, data.yutSteps);
             showMessage(data.message);
-            updateUI();
 
-            // 내 차례이면 말 선택 UI 표시
+            // 내 차례일 때만 lastYutSteps 업데이트 + 말 선택 UI 표시
             if (data.currentPlayerName === myName) {
+                lastYutSteps = data.yutSteps;
+                updateUI();
                 showPieceSelection();
+            } else {
+                updateUI();
             }
             break;
 
@@ -105,6 +107,13 @@ function doThrowYut() {
 // 말 이동
 function doMovePiece(pieceIndex) {
     if (!stompClient || !gameState) return;
+
+    // 이미 도착한 말은 이동 불가
+    const myPlayer = gameState.player1.name === myName ? gameState.player1 : gameState.player2;
+    if (myPlayer.pieces[pieceIndex].finished) {
+        showMessage('이미 도착한 말입니다!');
+        return;
+    }
 
     stompClient.send('/app/game/' + roomId + '/move', {},
         JSON.stringify({ playerName: myName, pieceIndex: pieceIndex })

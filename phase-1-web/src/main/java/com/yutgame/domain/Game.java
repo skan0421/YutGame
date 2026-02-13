@@ -68,13 +68,13 @@ public class Game {
         Position currentPos = piece.getPosition();
         Position newPos = board.calculateNewPosition(currentPos, steps);
         
-        // 해당 위치에 다른 말이 있는지 확인
-        Piece pieceAtPosition = findPieceAt(newPos);
-        
+        // 해당 위치에 다른 말이 있는지 확인 (자기 자신 제외)
+        Piece pieceAtPosition = findPieceAt(newPos, piece);
+
         boolean captured = false;
         boolean stacked = false;
-        
-        if (pieceAtPosition != null && !newPos.isFinish()) {
+
+        if (pieceAtPosition != null && !newPos.isFinish() && !newPos.isStart()) {
             if (pieceAtPosition.getOwner() == currentPlayer) {
                 // 내 말 -> 쌓기 (업기)
                 piece.stackWith(pieceAtPosition);
@@ -103,25 +103,25 @@ public class Game {
      * 특정 위치에 있는 말 찾기
      * (도착 지점 제외)
      */
-    private Piece findPieceAt(Position position) {
-        if (position.isFinish()) {
-            return null;  // 도착 지점은 겹칠 수 있음
+    private Piece findPieceAt(Position position, Piece exclude) {
+        if (position.isFinish() || position.isStart()) {
+            return null;  // 도착/시작 지점은 충돌 체크 안 함
         }
-        
+
         // 플레이어1의 말 확인
         for (Piece p : player1.getPieces()) {
-            if (p.getPosition().equals(position) && !p.isFinished()) {
+            if (p != exclude && p.getPosition().equals(position) && !p.isFinished()) {
                 return p;
             }
         }
-        
+
         // 플레이어2의 말 확인
         for (Piece p : player2.getPieces()) {
-            if (p.getPosition().equals(position) && !p.isFinished()) {
+            if (p != exclude && p.getPosition().equals(position) && !p.isFinished()) {
                 return p;
             }
         }
-        
+
         return null;
     }
     

@@ -33,12 +33,19 @@ async function loadRooms() {
             return;
         }
 
-        list.innerHTML = rooms.map(room => `
-            <div class="room-item">
-                <span>${room.player1Name}님의 방</span>
-                <button onclick="joinRoom('${room.roomId}')">참가</button>
-            </div>
-        `).join('');
+        list.innerHTML = '';
+        rooms.forEach(room => {
+            const item = document.createElement('div');
+            item.className = 'room-item';
+            const span = document.createElement('span');
+            span.textContent = room.player1Name + '님의 방';
+            const btn = document.createElement('button');
+            btn.textContent = '참가';
+            btn.onclick = () => joinRoom(room.roomId);
+            item.appendChild(span);
+            item.appendChild(btn);
+            list.appendChild(item);
+        });
     } catch (e) {
         console.error('방 목록 로딩 실패:', e);
     }
