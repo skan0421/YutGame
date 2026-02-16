@@ -2,49 +2,47 @@ package com.yutgame.domain;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 윷판
- * 
- * 기본 경로: 0 -> 1 -> 2 -> ... -> 29 (도착)
- * 
- * TODO: 실제 윷놀이 지름길 규칙에 맞게 수정 필요
- * 현재는 간단하게 특정 위치에서 점프하는 방식으로 구현
+ *
+ * 기본 경로: 외곽 0(시작) → 1 → ... → 20 → 21(도착)
+ * 지름길: 5, 10에서 중앙으로 향하는 대각선으로 분기 가능하며 중앙(24)에서 한 번 더 분기
+ * - 5 → 22(대각) → 24(중앙) → 25 → 15 → 16 ... 21(도착)
+ * - 10 → 26(대각) → 24(중앙) → 25 → 20 → 21(도착)
  */
 public class Board {
-    
-    // 지름길 정의 (시작 위치 -> 지름길 경로)
-    // TODO: 실제 윷놀이 규칙에 맞게 수정
-    private static final Map<Integer, List<Integer>> SHORTCUTS = Map.of(
-        5, List.of(20, 21, 22),      // 5번에서 대각선
-        10, List.of(23, 24, 25),     // 10번에서 중앙
-        22, List.of(25, 26, 27)      // 합류
-    );
-    
+
     /**
      * 현재 위치에서 steps만큼 이동한 새 위치 계산
      */
     public Position calculateNewPosition(Position currentPosition, int steps) {
-        int current = currentPosition.getIndex();
-        
-        // 빽도 처리
-        if (steps < 0) {
-            int newIndex = Math.max(0, current + steps);
-            return new Position(newIndex);
+        if (steps == 0) {
+            return currentPosition;
         }
-        
-        // 일반 이동
-        int newIndex = current + steps;
-        
-        // 도착 지점을 넘으면 도착으로 처리
-        if (newIndex >= Position.FINISH) {
-            return new Position(Position.FINISH);
+
+        Position position = currentPosition;
+        if (steps > 0) {
+            for (int i = 0; i < steps; i++) {
+                position = moveForward(position);
+                if (position.isFinish()) {
+                    break;
+                }
+            }
+        } else {
+            for (int i = 0; i < Math.abs(steps); i++) {
+                Position next = moveBackward(position);
+                // 시작을 더 밑으로 내려가지 않음
+                if (next.equals(position)) {
+                    break;
+                }
+                position = next;
+            }
         }
-        
-        return new Position(newIndex);
+
+        return position;
     }
-    
+
     /**
      * 이동 경로 계산 (지름길 포함)
      * 나중에 애니메이션이나 상세 표시에 사용 가능
@@ -52,59 +50,160 @@ public class Board {
     public List<Position> calculatePath(Position from, int steps) {
         List<Position> path = new ArrayList<>();
         path.add(from);
-        
-        int current = from.getIndex();
-        
-        // 빽도
-        if (steps < 0) {
-            for (int i = 1; i <= Math.abs(steps); i++) {
-                int next = Math.max(0, current - i);
-                path.add(new Position(next));
-                if (next == 0) break;
+
+        Position position = from;
+        if (steps > 0) {
+            for (int i = 0; i < steps; i++) {
+                position = moveForward(position);
+                path.add(position);
+                if (position.isFinish()) break;
             }
-            return path;
-        }
-        
-        // 지름길 체크
-        if (SHORTCUTS.containsKey(current) && steps >= 4) {
-            // 지름길로 이동
-            List<Integer> shortcut = SHORTCUTS.get(current);
-            for (int i = 0; i < Math.min(steps, shortcut.size()); i++) {
-                path.add(new Position(shortcut.get(i)));
-            }
-            
-            // 남은 칸이 있으면 계속 이동
-            int remaining = steps - shortcut.size();
-            if (remaining > 0) {
-                int lastShortcutPos = shortcut.get(shortcut.size() - 1);
-                for (int i = 1; i <= remaining; i++) {
-                    int next = lastShortcutPos + i;
-                    if (next >= Position.FINISH) {
-                        path.add(new Position(Position.FINISH));
-                        break;
-                    }
-                    path.add(new Position(next));
-                }
-            }
-        } else {
-            // 일반 경로로 이동
-            for (int i = 1; i <= steps; i++) {
-                int next = current + i;
-                if (next >= Position.FINISH) {
-                    path.add(new Position(Position.FINISH));
+        } else if (steps < 0) {
+            for (int i = 0; i < Math.abs(steps); i++) {
+                Position next = moveBackward(position);
+                if (next.equals(position)) {
                     break;
                 }
-                path.add(new Position(next));
+                position = next;
+                path.add(position);
+                if (position.isStart()) break;
             }
         }
-        
+
         return path;
     }
-    
+
     /**
-     * 특정 위치가 지름길 시작점인지 확인
+     * 전진 1칸 계산
      */
-    public boolean isShortcutStart(Position position) {
-        return SHORTCUTS.containsKey(position.getIndex());
+    private Position moveForward(Position current) {
+        if (current.isFinish()) {
+            return current;
+        }
+
+        int index = current.getIndex();
+        PathType pathType = current.getPathType();
+
+        // 공통 도착 처리
+        if (index == Position.FINISH) {
+            return current;
+        }
+
+        switch (pathType) {
+            case OUTER:
+                if (index == 5) {
+                    return new Position(22, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 10) {
+                    return new Position(26, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 20) {
+                    return new Position(Position.FINISH, PathType.OUTER);
+                }
+                return new Position(index + 1, PathType.OUTER);
+
+            case DIAGONAL_FROM_5:
+                if (index == 5) {
+                    return new Position(22, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 22) {
+                    return new Position(24, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 24) {
+                    return new Position(25, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 25) {
+                    return new Position(15, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 20) {
+                    return new Position(Position.FINISH, PathType.DIAGONAL_FROM_5);
+                }
+                return new Position(index + 1, PathType.DIAGONAL_FROM_5);
+
+            case DIAGONAL_FROM_10:
+                if (index == 10) {
+                    return new Position(26, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 26) {
+                    return new Position(24, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 24) {
+                    return new Position(25, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 25) {
+                    return new Position(20, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 20) {
+                    return new Position(Position.FINISH, PathType.DIAGONAL_FROM_10);
+                }
+                return new Position(index + 1, PathType.DIAGONAL_FROM_10);
+            default:
+                throw new IllegalStateException("Unknown path type: " + pathType);
+        }
+    }
+
+    /**
+     * 후진 1칸 계산 (빽도)
+     */
+    private Position moveBackward(Position current) {
+        if (current.isStart()) {
+            return current;
+        }
+
+        int index = current.getIndex();
+        PathType pathType = current.getPathType();
+
+        switch (pathType) {
+            case OUTER:
+                if (current.isFinish()) {
+                    return new Position(20, PathType.OUTER);
+                }
+                int nextIndex = Math.max(Position.START, index - 1);
+                return new Position(nextIndex, PathType.OUTER);
+
+            case DIAGONAL_FROM_5:
+                if (current.isFinish()) {
+                    return new Position(20, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 20) {
+                    return new Position(19, PathType.DIAGONAL_FROM_5);
+                }
+                if (index > 15) {
+                    return new Position(index - 1, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 15) {
+                    return new Position(25, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 25) {
+                    return new Position(24, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 24) {
+                    return new Position(22, PathType.DIAGONAL_FROM_5);
+                }
+                if (index == 22) {
+                    return new Position(5, PathType.OUTER);
+                }
+                return new Position(Math.max(Position.START, index - 1), PathType.DIAGONAL_FROM_5);
+
+            case DIAGONAL_FROM_10:
+                if (current.isFinish()) {
+                    return new Position(20, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 20) {
+                    return new Position(25, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 25) {
+                    return new Position(24, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 24) {
+                    return new Position(26, PathType.DIAGONAL_FROM_10);
+                }
+                if (index == 26) {
+                    return new Position(10, PathType.OUTER);
+                }
+                return new Position(Math.max(Position.START, index - 1), PathType.DIAGONAL_FROM_10);
+            default:
+                throw new IllegalStateException("Unknown path type: " + pathType);
+        }
     }
 }
