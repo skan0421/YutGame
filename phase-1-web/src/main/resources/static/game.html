@@ -17,7 +17,7 @@
         <!-- 상단: 플레이어 탭 -->
         <div class="player-tabs">
             <div class="player-tab" id="player1-info">
-                <span class="player-emoji">🔴</span>
+                <span class="player-dot dot-p1"></span>
                 <span class="player-name" id="p1-name">Player 1</span>
                 <span class="player-score" id="p1-score">도착: 0/4</span>
             </div>
@@ -26,7 +26,7 @@
                 <span id="current-turn-name">대기중</span>
             </div>
             <div class="player-tab" id="player2-info">
-                <span class="player-emoji">🟢</span>
+                <span class="player-dot dot-p2"></span>
                 <span class="player-name" id="p2-name">Player 2</span>
                 <span class="player-score" id="p2-score">도착: 0/4</span>
             </div>
@@ -62,14 +62,9 @@
             </div>
         </div>
 
-        <!-- 윷 던지기 애니메이션 오버레이 -->
+        <!-- 윷 던지기 3D 애니메이션 오버레이 -->
         <div id="yut-throw-overlay" class="yut-throw-overlay" style="display:none;">
-            <div class="yut-sticks-container">
-                <div class="yut-stick"></div>
-                <div class="yut-stick"></div>
-                <div class="yut-stick"></div>
-                <div class="yut-stick"></div>
-            </div>
+            <canvas id="yut-throw-canvas"></canvas>
             <div class="throw-result-text" id="throw-result-text"></div>
         </div>
 

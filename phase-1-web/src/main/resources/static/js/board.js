@@ -119,8 +119,8 @@ const BoardRenderer = {
     // ===== Three.js 씬 초기화 =====
     initThreeScene() {
         const mount = this.mount;
-        const w = Math.min(mount.clientWidth || 520, 520);
-        const h = w;
+        const w = mount.clientWidth || 520;
+        const h = mount.clientHeight || w;
 
         // Scene
         const scene = new THREE.Scene();
@@ -200,6 +200,16 @@ const BoardRenderer = {
         // Clock & animate
         this.clock = new THREE.Clock();
         this.startAnimation();
+
+        // 리사이즈 핸들러
+        const self = this;
+        window.addEventListener('resize', function () {
+            const nw = self.mount.clientWidth || 520;
+            const nh = self.mount.clientHeight || nw;
+            self.camera.aspect = nw / nh;
+            self.camera.updateProjectionMatrix();
+            self.renderer.setSize(nw, nh);
+        });
     },
 
     // ===== 보드 빌드 =====
