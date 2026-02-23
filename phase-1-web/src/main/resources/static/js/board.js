@@ -22,8 +22,8 @@ const BoardRenderer = {
     effects: [],
 
     // 플레이어 색상
-    PLAYER_COLORS: [0xe94560, 0x4ecdc4],
-    PLAYER_DARK: [0xcc3344, 0x339990],
+    PLAYER_COLORS: [0xc0392b, 0x2980b9],
+    PLAYER_DARK: [0x922b21, 0x1a5276],
     CORNERS: new Set([0, 5, 10, 15, 22]),
 
     // 경로 맵 (백엔드와 동일)
@@ -122,16 +122,16 @@ const BoardRenderer = {
         const w = mount.clientWidth || 520;
         const h = mount.clientHeight || w;
 
-        // Scene
+        // Scene (따뜻한 실내 느낌)
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
+        scene.background = new THREE.Color(0xf5e6d0);
+        scene.fog = new THREE.FogExp2(0xf5e6d0, 0.015);
         this.scene = scene;
 
-        // Camera
-        const camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 100);
-        camera.position.set(0, 15, 11);
-        camera.lookAt(0, 0, 0.5);
+        // Camera (사각형 보드가 잘 보이는 각도)
+        const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+        camera.position.set(0, 14, 9);
+        camera.lookAt(0, 0, 0);
         this.camera = camera;
 
         // Renderer
@@ -174,23 +174,13 @@ const BoardRenderer = {
         // Particles
         this.particles = this.createParticleSystem();
 
-        // Clouds
+        // Clouds (실내이므로 구름 비활성)
         this.clouds = [];
-        const cloudData = [
-            { x: -6, y: 8, z: -8, s: 1.2 },
-            { x: 5, y: 9, z: -6, s: 0.8 },
-            { x: 8, y: 7.5, z: 3, s: 1.0 },
-        ];
-        cloudData.forEach(c => {
-            const cloud = this.createCloud(c.x, c.y, c.z, c.s);
-            scene.add(cloud);
-            this.clouds.push(cloud);
-        });
 
-        // Ground
+        // Ground (짚/다다미 느낌의 바닥)
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(50, 50),
-            new THREE.MeshToonMaterial({ color: 0x5a9a5a, gradientMap: this._toonGrad3 })
+            new THREE.MeshToonMaterial({ color: 0xc8b07a, gradientMap: this._toonGrad3 })
         );
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.5;
@@ -216,25 +206,39 @@ const BoardRenderer = {
     buildBoard() {
         const scene = this.scene;
 
-        // Board base (원형 잔디 판)
-        const boardMat = new THREE.MeshToonMaterial({ color: 0x8bc47a, gradientMap: this._toonGrad4 });
-        const board = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 6.5, 0.3, 32), boardMat);
-        board.position.y = -0.15;
+        // Board base (사각형 나무 판 - 전통 윷판 느낌)
+        const boardMat = new THREE.MeshToonMaterial({ color: 0xd4b896, gradientMap: this._toonGrad4 });
+        const board = new THREE.Mesh(new THREE.BoxGeometry(12, 0.25, 12, 1, 1, 1), boardMat);
+        board.position.y = -0.13;
         board.receiveShadow = true;
-        this.addOutline(board, 1.01, 0x5a8a4a);
         scene.add(board);
 
-        // Board rim
-        const rim = new THREE.Mesh(
-            new THREE.TorusGeometry(6.3, 0.15, 8, 48),
-            new THREE.MeshToonMaterial({ color: 0x6b5b3a, gradientMap: this._toonGrad4 })
-        );
-        rim.rotation.x = Math.PI / 2;
-        rim.position.y = -0.05;
-        scene.add(rim);
+        // 보드 테두리 (나무 프레임 - 사각형)
+        const frameMat = new THREE.MeshToonMaterial({ color: 0x8b6914, gradientMap: this._toonGrad4 });
+        const frameW = 12.4, frameH = 0.35, frameD = 0.25;
+        // 앞
+        const frameFront = new THREE.Mesh(new THREE.BoxGeometry(frameW, frameH, frameD), frameMat);
+        frameFront.position.set(0, -0.05, 6.1);
+        frameFront.receiveShadow = true;
+        scene.add(frameFront);
+        // 뒤
+        const frameBack = new THREE.Mesh(new THREE.BoxGeometry(frameW, frameH, frameD), frameMat);
+        frameBack.position.set(0, -0.05, -6.1);
+        frameBack.receiveShadow = true;
+        scene.add(frameBack);
+        // 좌
+        const frameLeft = new THREE.Mesh(new THREE.BoxGeometry(frameD, frameH, frameW), frameMat);
+        frameLeft.position.set(-6.1, -0.05, 0);
+        frameLeft.receiveShadow = true;
+        scene.add(frameLeft);
+        // 우
+        const frameRight = new THREE.Mesh(new THREE.BoxGeometry(frameD, frameH, frameW), frameMat);
+        frameRight.position.set(6.1, -0.05, 0);
+        frameRight.receiveShadow = true;
+        scene.add(frameRight);
 
-        // Edges (경로)
-        const pathMat = new THREE.MeshToonMaterial({ color: 0xe8d5b0, gradientMap: this._toonGrad3 });
+        // Edges (경로) - 보드 위에 좀 더 밝은 선
+        const pathMat = new THREE.MeshToonMaterial({ color: 0x8b7355, gradientMap: this._toonGrad3 });
         this.EDGES.forEach(([a, b]) => {
             const pa = this.gp(a), pb = this.gp(b);
             if (!pa || !pb) return;
@@ -265,14 +269,24 @@ const BoardRenderer = {
             this.addOutline(spot, 1.05, isCorner ? 0x8b6b3a : 0x9a8a6a);
             scene.add(spot);
 
-            if (isCorner) {
-                const ring = new THREE.Mesh(
-                    new THREE.TorusGeometry(r - 0.1, 0.03, 8, 20),
-                    new THREE.MeshToonMaterial({ color: 0xf0d8a0, gradientMap: this._toonGrad3 })
+            // 코너에 깃발 장식
+            if (isCorner && pos.id !== 22) {
+                const flagPole = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.02, 0.6, 6),
+                    new THREE.MeshToonMaterial({ color: 0x5d4037, gradientMap: this._toonGrad3 })
                 );
-                ring.rotation.x = -Math.PI / 2;
-                ring.position.set(pos.x, h + 0.01, pos.z);
-                scene.add(ring);
+                flagPole.position.set(pos.x, 0.3, pos.z);
+                scene.add(flagPole);
+                const flagGeo = new THREE.PlaneGeometry(0.25, 0.15);
+                const flagColors = { 0: 0xe94560, 5: 0x4ecdc4, 10: 0xFFD700, 15: 0xa78bfa };
+                const flagMat = new THREE.MeshToonMaterial({
+                    color: flagColors[pos.id] || 0xe94560,
+                    side: THREE.DoubleSide,
+                    gradientMap: this._toonGrad3
+                });
+                const flag = new THREE.Mesh(flagGeo, flagMat);
+                flag.position.set(pos.x + 0.13, 0.52, pos.z);
+                scene.add(flag);
             }
         });
 
@@ -294,24 +308,18 @@ const BoardRenderer = {
         label.position.set(startPos.x, 0.16, startPos.z + 0.65);
         scene.add(label);
 
-        // Trees
-        const treePositions = [
-            { x: -7.5, z: -6, s: 1.2 }, { x: 7, z: -7, s: 1.0 },
-            { x: -8, z: 5, s: 0.8 }, { x: 7.5, z: 6, s: 1.1 },
-            { x: 8.5, z: -2, s: 0.7 }, { x: -8.5, z: -1, s: 0.9 },
-        ];
-        treePositions.forEach(t => scene.add(this.createTree(t.x, t.z, t.s)));
-
-        // Flowers
-        const flowerColors = [0xff69b4, 0xff6b6b, 0xffeb3b, 0x4ecdc4, 0xa78bfa];
-        for (let i = 0; i < 20; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 6.5 + Math.random() * 2;
-            scene.add(this.createFlower(
-                Math.cos(angle) * dist,
-                Math.sin(angle) * dist,
-                flowerColors[Math.floor(Math.random() * flowerColors.length)]
-            ));
+        // 윷판 주변 장식 - 전통 소품들
+        // 윷 세트 장식 (옆에 놓인 윷)
+        const decoStickMat = new THREE.MeshToonMaterial({ color: 0xd4a56a, gradientMap: this._toonGrad4 });
+        for (let i = 0; i < 4; i++) {
+            const dStick = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8),
+                decoStickMat
+            );
+            dStick.position.set(-7.5 + i * 0.25, -0.2, 0);
+            dStick.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.2;
+            dStick.rotation.y = (Math.random() - 0.5) * 0.3;
+            scene.add(dStick);
         }
     },
 
@@ -613,12 +621,7 @@ const BoardRenderer = {
             self.animFrameId = requestAnimationFrame(animate);
             const t = self.clock.getElapsedTime();
 
-            // 구름 이동
-            self.clouds.forEach((cloud, i) => {
-                cloud.position.x += 0.003 * (i % 2 === 0 ? 1 : -1);
-                if (cloud.position.x > 14) cloud.position.x = -14;
-                if (cloud.position.x < -14) cloud.position.x = 14;
-            });
+            // (구름 비활성)
 
             // 파티클
             self.updateParticles();
@@ -631,9 +634,9 @@ const BoardRenderer = {
             });
 
             // 카메라 미세 움직임
-            self.camera.position.x = Math.sin(t * 0.15) * 0.5;
-            self.camera.position.z = 11 + Math.sin(t * 0.1) * 0.3;
-            self.camera.lookAt(0, 0, 0.5);
+            self.camera.position.x = Math.sin(t * 0.15) * 0.3;
+            self.camera.position.z = 9 + Math.sin(t * 0.1) * 0.2;
+            self.camera.lookAt(0, 0, 0);
 
             self.renderer.render(self.scene, self.camera);
         }
